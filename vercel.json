@@ -1,5 +1,5 @@
 {
-  "buildCommand": "bash -c 'cd frontend && npm run build'",
-  "installCommand": "bash -c 'cd frontend && npm install'",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
   "outputDirectory": "frontend/.next"
 }
