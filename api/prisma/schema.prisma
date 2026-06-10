@@ -1,0 +1,234 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector")]
+}
+
+model VisitorType {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String    @unique @db.VarChar(100)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  visitors  Visitor[]
+
+  @@map("visitor_types")
+}
+
+model Visitor {
+  id               String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  visitorTypeId    String?              @map("visitor_type_id") @db.Uuid
+  firstName        String               @map("first_name") @db.VarChar(100)
+  lastName         String               @map("last_name") @db.VarChar(100)
+  phone            String?              @db.VarChar(30)
+  email            String?              @db.VarChar(200)
+  company          String?              @db.VarChar(200)
+  faceEmbedding    Unsupported("vector(512)")? @map("face_embedding")
+  photoUrl         String?              @map("photo_url") @db.VarChar(500)
+  embeddingReady   Boolean              @default(false) @map("embedding_ready")
+  zohoContactId    String?              @map("zoho_contact_id") @db.VarChar(100)
+  createdAt        DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime             @updatedAt @map("updated_at") @db.Timestamptz
+
+  visitorType      VisitorType?         @relation(fields: [visitorTypeId], references: [id])
+  customValues     VisitorCustomValue[]
+  preferences      VisitorPreference[]
+  sessions         VisitSession[]
+  detectionEvents  DetectionEvent[]
+  queueEntries     UnrecognisedQueue[]
+
+  @@map("visitors")
+}
+
+model VisitorCustomField {
+  id         String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fieldName  String               @unique @map("field_name") @db.VarChar(100)
+  fieldType  String               @map("field_type") @db.VarChar(20)
+  isRequired Boolean              @default(false) @map("is_required")
+  createdAt  DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  values     VisitorCustomValue[]
+
+  @@map("visitor_custom_fields")
+}
+
+model VisitorCustomValue {
+  id        String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  visitorId String             @map("visitor_id") @db.Uuid
+  fieldId   String             @map("field_id") @db.Uuid
+  value     String?
+
+  visitor   Visitor            @relation(fields: [visitorId], references: [id])
+  field     VisitorCustomField @relation(fields: [fieldId], references: [id])
+
+  @@map("visitor_custom_values")
+}
+
+model VisitorPreference {
+  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  visitorId  String  @map("visitor_id") @db.Uuid
+  preference String  @db.VarChar(100)
+  value      String  @db.VarChar(500)
+
+  visitor    Visitor @relation(fields: [visitorId], references: [id])
+
+  @@map("visitor_preferences")
+}
+
+model Camera {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String           @db.VarChar(100)
+  location        String           @db.VarChar(200)
+  role            String           @db.VarChar(20)
+  rtspUrl         String           @map("rtsp_url")
+  isActive        Boolean          @default(true) @map("is_active")
+  lastSeen        DateTime?        @map("last_seen") @db.Timestamptz
+  sessions        VisitSession[]
+  detectionEvents DetectionEvent[]
+  queueEntries    UnrecognisedQueue[]
+
+  @@map("cameras")
+}
+
+model VisitSession {
+  id              String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  visitorId       String           @map("visitor_id") @db.Uuid
+  entryTime       DateTime         @map("entry_time") @db.Timestamptz
+  exitTime        DateTime?        @map("exit_time") @db.Timestamptz
+  exitMethod      String?          @map("exit_method") @db.VarChar(20)
+  durationMins    Int?             @map("duration_mins")
+  cameraId        String?          @map("camera_id") @db.Uuid
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  visitor         Visitor          @relation(fields: [visitorId], references: [id])
+  camera          Camera?          @relation(fields: [cameraId], references: [id])
+  detectionEvents DetectionEvent[]
+
+  @@map("visit_sessions")
+}
+
+model DetectionEvent {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  visitorId  String?      @map("visitor_id") @db.Uuid
+  sessionId  String?      @map("session_id") @db.Uuid
+  cameraId   String       @map("camera_id") @db.Uuid
+  detectedAt DateTime     @map("detected_at") @db.Timestamptz
+  eventType  String       @map("event_type") @db.VarChar(10)
+  similarity Float?
+
+  visitor    Visitor?     @relation(fields: [visitorId], references: [id])
+  session    VisitSession? @relation(fields: [sessionId], references: [id])
+  camera     Camera       @relation(fields: [cameraId], references: [id])
+
+  @@map("detection_events")
+}
+
+model UnrecognisedQueue {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  visitorId    String?   @map("visitor_id") @db.Uuid
+  faceSnapshot String?   @map("face_snapshot") @db.VarChar(500)
+  detectedAt   DateTime  @map("detected_at") @db.Timestamptz
+  cameraId     String?   @map("camera_id") @db.Uuid
+  status       String    @default("pending") @db.VarChar(20)
+  actionedBy   String?   @map("actioned_by") @db.Uuid
+  actionedAt   DateTime? @map("actioned_at") @db.Timestamptz
+  dismissReason String?  @map("dismiss_reason") @db.VarChar(200)
+
+  visitor      Visitor?  @relation(fields: [visitorId], references: [id])
+  camera       Camera?   @relation(fields: [cameraId], references: [id])
+  actionedUser User?     @relation(fields: [actionedBy], references: [id])
+
+  @@map("unrecognised_queue")
+}
+
+model User {
+  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String           @unique @db.VarChar(200)
+  passwordHash  String           @map("password_hash") @db.VarChar(255)
+  fullName      String           @map("full_name") @db.VarChar(200)
+  isActive      Boolean          @default(true) @map("is_active")
+  failedAttempts Int             @default(0) @map("failed_attempts")
+  lockedUntil   DateTime?        @map("locked_until") @db.Timestamptz
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  permissions   UserPermission[]
+  auditLogs     AuditLog[]
+  queueActions  UnrecognisedQueue[]
+
+  @@map("users")
+}
+
+model UserPermission {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String  @map("user_id") @db.Uuid
+  module    String  @db.VarChar(50)
+  canView   Boolean @default(false) @map("can_view")
+  canCreate Boolean @default(false) @map("can_create")
+  canEdit   Boolean @default(false) @map("can_edit")
+  canDelete Boolean @default(false) @map("can_delete")
+  canExport Boolean @default(false) @map("can_export")
+
+  user      User    @relation(fields: [userId], references: [id])
+
+  @@unique([userId, module])
+  @@map("user_permissions")
+}
+
+model AuditLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  action    String   @db.VarChar(100)
+  entityId  String?  @map("entity_id") @db.Uuid
+  metadata  Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model StagingVisitor {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  zohoContactId String    @unique @map("zoho_contact_id") @db.VarChar(100)
+  firstName     String    @map("first_name") @db.VarChar(100)
+  lastName      String    @map("last_name") @db.VarChar(100)
+  phone         String?   @db.VarChar(30)
+  email         String?   @db.VarChar(200)
+  company       String?   @db.VarChar(200)
+  visitorType   String?   @map("visitor_type") @db.VarChar(100)
+  photoUrl      String?   @map("photo_url") @db.VarChar(500)
+  syncedAt      DateTime? @map("synced_at") @db.Timestamptz
+  imported      Boolean   @default(false)
+
+  @@map("staging_visitors")
+}
+
+model CrmIntegration {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  crmType         String    @map("crm_type") @db.VarChar(50)
+  webhookUrl      String    @map("webhook_url") @db.VarChar(500)
+  webhookToken    String    @map("webhook_token") @db.VarChar(255)
+  isActive        Boolean   @default(true) @map("is_active")
+  lastSyncAt      DateTime? @map("last_sync_at") @db.Timestamptz
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([crmType])
+  @@map("crm_integrations")
+}
+
+model IntegrationWebhookLog {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  integrationId   String    @map("integration_id") @db.Uuid
+  event           String    @db.VarChar(100)
+  status          String    @db.VarChar(20)
+  responseCode    Int?      @map("response_code")
+  errorMessage    String?   @map("error_message") @db.Text
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([integrationId])
+  @@index([createdAt])
+  @@map("integration_webhook_logs")
+}

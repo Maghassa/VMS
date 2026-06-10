@@ -1,0 +1,15 @@
+.env
+node_modules/
+.next/
+__pycache__/
+*.pyc
+dist/
+build/
+storage/photos/*
+storage/snapshots/*
+!storage/photos/.gitkeep
+!storage/snapshots/.gitkeep
+nginx/ssl/
+ai-engine/models/
+*.log
+pm2.log

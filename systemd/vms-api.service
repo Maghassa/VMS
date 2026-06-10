@@ -1,0 +1,18 @@
+[Unit]
+Description=VMS API Server
+After=vms-ai.service
+Requires=vms-ai.service
+
+[Service]
+Type=simple
+User=vms
+WorkingDirectory=/opt/vms
+EnvironmentFile=/opt/vms/.env
+ExecStart=/usr/bin/node /opt/vms/api/dist/index.js
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

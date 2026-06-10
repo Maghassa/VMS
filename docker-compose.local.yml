@@ -1,0 +1,61 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: vms-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vms
+      POSTGRES_USER: vms_user
+      POSTGRES_PASSWORD: MeydanVMS2026Secure
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vms_user -d vms"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: vms-api
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=postgresql://vms_user:MeydanVMS2026Secure@postgres:5432/vms
+      - JWT_SECRET=c95dd29955e2ffda3a6ccda89da0c6ffaa32eb78dd01c36b6734138732111eb5
+      - JWT_REFRESH_SECRET=08e652297b8d0fad060365f21da3faaeba80d2260259a2ad87de5d1e6bfb0402
+      - AI_ENGINE_URL=http://localhost:8000
+      - STORAGE_PATH=/storage
+      - STAGING_API_TOKEN=162721d96cbceb619fa09af6d64860a91c8847c4746cb6b1f60491b0b99be752
+      - DISK_WARNING_PCT=70
+      - DISK_CRITICAL_PCT=85
+      - AUTO_DISMISS_HOURS=24
+      - NODE_ENV=production
+      - PORT=4000
+    volumes:
+      - ./storage:/storage
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: vms-frontend
+    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:4000/api
+      - NEXT_PUBLIC_WS_URL=ws://localhost:4000/ws
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:

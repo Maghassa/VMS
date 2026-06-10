@@ -1,0 +1,18 @@
+[Unit]
+Description=VMS Frontend
+After=vms-api.service
+
+[Service]
+Type=simple
+User=vms
+WorkingDirectory=/opt/vms/frontend
+EnvironmentFile=/opt/vms/.env
+ExecStart=/usr/bin/node .next/standalone/server.js
+Restart=always
+RestartSec=5
+Environment=PORT=3000
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
