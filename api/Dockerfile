@@ -19,4 +19,4 @@ COPY prisma ./prisma
 RUN npx prisma generate
 COPY --from=builder /app/dist ./dist
 EXPOSE 4000
-CMD ["sh", "-c", "npx prisma migrate deploy && (npm run db:seed || echo 'seed skipped') && node dist/index.js"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && (npm run db:seed || echo 'seed skipped') && node dist/index.js"]
