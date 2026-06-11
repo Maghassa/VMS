@@ -6,6 +6,7 @@ import { authenticate, requirePermission, AuthRequest } from "../middleware/auth
 import { audit } from "../middleware/audit";
 import { prisma } from "../db";
 import { triggerEmbedding } from "../services/aiEngine";
+import { pushVisitorToCrm } from "../jobs/pushToCrm";
 
 const router = Router();
 router.use(authenticate);
@@ -89,6 +90,7 @@ router.post(
     const visitor = await prisma.visitor.create({
       data: { firstName, lastName, phone, email, company, visitorTypeId, zohoContactId },
     });
+    void pushVisitorToCrm(visitor.id);
     res.status(201).json(visitor);
   }
 );
@@ -103,6 +105,7 @@ router.patch(
       where: { id: req.params.id },
       data: { firstName, lastName, phone, email, company, visitorTypeId },
     });
+    void pushVisitorToCrm(visitor.id);
     res.json(visitor);
   }
 );
@@ -119,6 +122,7 @@ router.post(
       where: { id: req.params.id },
       data: { photoUrl, embeddingReady: false },
     });
+    void pushVisitorToCrm(req.params.id);
 
     // Trigger async embedding generation
     triggerEmbedding(req.params.id, req.file.path).catch(console.error);
