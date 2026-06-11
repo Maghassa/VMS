@@ -1,6 +1,11 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
 
+if (!process.env.ADMIN_EMAIL || !process.env.ADMIN_PASSWORD) {
+  throw new Error('ADMIN_EMAIL and ADMIN_PASSWORD environment variables are required to seed the admin user.');
+}
+
+
 const prisma = new PrismaClient();
 
 async function main() {
@@ -15,12 +20,12 @@ async function main() {
   }
 
   // Default admin user
-  const passwordHash = await bcrypt.hash("Admin@123456", 12);
+  const passwordHash = await bcrypt.hash(process.env.ADMIN_PASSWORD!, 12);
   const admin = await prisma.user.upsert({
-    where: { email: "maghassa77@gmail.com" },
+    where: { email: process.env.ADMIN_EMAIL! },
     update: {},
     create: {
-      email: "maghassa77@gmail.com",
+      email: process.env.ADMIN_EMAIL!,
       passwordHash,
       fullName: "System Administrator",
       isActive: true,
@@ -45,7 +50,7 @@ async function main() {
     });
   }
 
-  console.log("Seed complete. Admin: maghassa77@gmail.com / Admin@123456");
+  console.log(`Seed complete. Admin: ${process.env.ADMIN_EMAIL}`);
 }
 
 main()
