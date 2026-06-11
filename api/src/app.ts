@@ -14,6 +14,7 @@ import reportsRouter from "./routes/reports";
 import healthRouter from "./routes/health";
 import usersRouter from "./routes/users";
 import stagingRouter from "./routes/staging";
+import zohoRouter from "./routes/zoho";
 import detectionRouter from "./routes/detection";
 import integrationsRouter from "./routes/integrations";
 
@@ -38,6 +39,7 @@ app.use("/api/reports", reportsRouter);
 app.use("/api/health", healthRouter);
 app.use("/api/users", usersRouter);
 app.use("/api/staging", stagingRouter);
+app.use("/api/zoho", zohoRouter);
 app.use("/api/detection", detectionRouter);
 app.use("/api/integrations", integrationsRouter);
 
