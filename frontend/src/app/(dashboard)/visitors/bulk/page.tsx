@@ -14,8 +14,12 @@ export default function BulkUploadPage() {
 
   const uploadMutation = useMutation({
     mutationFn: async (formData: FormData) => {
+      setUploadProgress(0);
       return api.post("/visitors/bulk", formData, {
         headers: { "Content-Type": "multipart/form-data" },
+        onUploadProgress: (e) => {
+          if (e.total) setUploadProgress(Math.round((e.loaded / e.total) * 100));
+        },
       });
     },
     onSuccess: () => {

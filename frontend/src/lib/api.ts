@@ -11,11 +11,14 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Auto-refresh on 401
+// Auto-refresh on 401 (but never for auth endpoints — a failed login must
+// surface its error to the form, not trigger a redirect loop)
 api.interceptors.response.use(
   (r) => r,
   async (error) => {
-    if (error.response?.status === 401 && !error.config._retry) {
+    const url: string = error.config?.url || "";
+    const isAuthRoute = url.includes("/auth/");
+    if (error.response?.status === 401 && !error.config._retry && !isAuthRoute) {
       error.config._retry = true;
       const refreshToken = localStorage.getItem("refreshToken");
       if (refreshToken) {
@@ -35,3 +38,11 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+/** Extract a human-readable message from an API error. */
+export function apiErrorMessage(err: unknown, fallback = "Something went wrong. Please try again.") {
+  const e = err as { response?: { data?: { error?: string } }; message?: string };
+  if (e?.response?.data?.error) return e.response.data.error;
+  if (e?.message === "Network Error") return "Cannot reach the server. Check your connection.";
+  return fallback;
+}

@@ -21,7 +21,11 @@ import integrationsRouter from "./routes/integrations";
 const app = express();
 
 app.use(helmet());
-app.use(cors({ origin: process.env.FRONTEND_URL || "*" }));
+// FRONTEND_URL supports a comma-separated list, e.g. "https://vms.vercel.app,http://localhost:3000"
+const allowedOrigins = process.env.FRONTEND_URL
+  ? process.env.FRONTEND_URL.split(",").map((o) => o.trim())
+  : "*";
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 

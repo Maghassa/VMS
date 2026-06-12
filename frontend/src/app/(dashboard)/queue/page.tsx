@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { formatDistanceToNow } from "date-fns";
 
@@ -20,6 +20,14 @@ export default function QueuePage() {
   const [form, setForm] = useState({ firstName: "", lastName: "", phone: "", email: "", company: "" });
   const [dismissReason, setDismissReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [modalError, setModalError] = useState("");
+
+  function openEntry(e: QueueEntry) {
+    setSelected(e);
+    setForm({ firstName: "", lastName: "", phone: "", email: "", company: "" });
+    setDismissReason("");
+    setModalError("");
+  }
 
   const { data, refetch } = useQuery({
     queryKey: ["queue"],
@@ -34,17 +42,28 @@ export default function QueuePage() {
   async function complete() {
     if (!selected) return;
     setSubmitting(true);
-    await api.patch(`/queue/${selected.id}/complete`, form);
-    setSelected(null);
-    refetch();
-    setSubmitting(false);
+    setModalError("");
+    try {
+      await api.patch(`/queue/${selected.id}/complete`, form);
+      setSelected(null);
+      refetch();
+    } catch (err) {
+      setModalError(apiErrorMessage(err, "Failed to save visitor"));
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function dismiss() {
     if (!selected || !dismissReason) return;
-    await api.post(`/queue/${selected.id}/dismiss`, { reason: dismissReason });
-    setSelected(null);
-    refetch();
+    setModalError("");
+    try {
+      await api.post(`/queue/${selected.id}/dismiss`, { reason: dismissReason });
+      setSelected(null);
+      refetch();
+    } catch (err) {
+      setModalError(apiErrorMessage(err, "Failed to dismiss entry"));
+    }
   }
 
   return (
@@ -77,7 +96,7 @@ export default function QueuePage() {
                 <td className="px-4 py-3 text-gray-500">{formatDistanceToNow(new Date(e.detectedAt))}</td>
                 <td className="px-4 py-3">
                   <button
-                    onClick={() => setSelected(e)}
+                    onClick={() => openEntry(e)}
                     className="text-blue-600 hover:underline text-sm font-medium"
                   >
                     Complete
@@ -103,6 +122,9 @@ export default function QueuePage() {
             {selected.faceSnapshot && (
               <img src={selected.faceSnapshot} className="w-24 h-24 rounded object-cover mx-auto" alt="" />
             )}
+            {modalError && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">{modalError}</p>
+            )}
             {["firstName", "lastName", "phone", "email", "company"].map((field) => (
               <input
                 key={field}
@@ -118,7 +140,7 @@ export default function QueuePage() {
                 disabled={!form.firstName || !form.lastName || submitting}
                 className="flex-1 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium disabled:opacity-40"
               >
-                Save Visitor
+                {submitting ? "Saving…" : "Save Visitor"}
               </button>
             </div>
             <div className="border-t pt-3">

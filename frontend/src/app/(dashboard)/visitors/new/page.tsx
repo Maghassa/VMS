@@ -35,8 +35,12 @@ export default function NewVisitorPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.firstName || !formData.lastName) {
+    if (!formData.firstName.trim() || !formData.lastName.trim()) {
       setError("First name and last name are required");
+      return;
+    }
+    if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setError("Please enter a valid email address (e.g. name@company.com)");
       return;
     }
     setError("");

@@ -26,6 +26,9 @@ router.post(
       return res.status(400).json({ error: "Password must be 8+ chars with 1 uppercase and 1 number" });
     }
 
+    const existing = await prisma.user.findUnique({ where: { email } });
+    if (existing) return res.status(409).json({ error: "A user with this email already exists" });
+
     const passwordHash = await bcrypt.hash(password, 12);
     const user = await prisma.user.create({ data: { email, passwordHash, fullName } });
 

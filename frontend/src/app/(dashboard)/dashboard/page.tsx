@@ -69,7 +69,7 @@ export default function DashboardPage() {
       <h1 className="text-2xl font-bold">Dashboard</h1>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         {[
           { label: "Inside Now", value: active?.length ?? "—" },
           { label: "Total Today", value: daily?.total ?? "—" },
@@ -83,7 +83,7 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Live visitor log */}
         <div className="bg-white rounded-xl shadow-sm p-5">
           <h2 className="font-semibold mb-3">Visitors Inside Now</h2>

@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, apiErrorMessage } from "@/lib/api";
 
 interface Camera {
   id: string;
@@ -24,6 +24,7 @@ export default function CamerasPage() {
     rtspUrl: "",
   });
   const [testResult, setTestResult] = useState<{ id: string; message: string } | null>(null);
+  const [formError, setFormError] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["cameras"],
@@ -37,7 +38,9 @@ export default function CamerasPage() {
       queryClient.invalidateQueries({ queryKey: ["cameras"] });
       setFormData({ name: "", location: "", role: "", rtspUrl: "" });
       setShowForm(false);
+      setFormError("");
     },
+    onError: (err) => setFormError(apiErrorMessage(err, "Failed to add camera")),
   });
 
   const updateMutation = useMutation({
@@ -47,7 +50,10 @@ export default function CamerasPage() {
       queryClient.invalidateQueries({ queryKey: ["cameras"] });
       setFormData({ name: "", location: "", role: "", rtspUrl: "" });
       setEditId(null);
+      setShowForm(false);
+      setFormError("");
     },
+    onError: (err) => setFormError(apiErrorMessage(err, "Failed to update camera")),
   });
 
   const deleteMutation = useMutation({
@@ -71,9 +77,10 @@ export default function CamerasPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.rtspUrl) {
-      alert("Name and RTSP URL are required");
+      setFormError("Camera name and RTSP URL are required");
       return;
     }
+    setFormError("");
 
     if (editId) {
       updateMutation.mutate(formData);
@@ -120,6 +127,9 @@ export default function CamerasPage() {
           <h2 className="text-lg font-semibold mb-4">
             {editId ? "Edit Camera" : "Add New Camera"}
           </h2>
+          {formError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">{formError}</div>
+          )}
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>

@@ -1,8 +1,8 @@
 "use client";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { api } from "@/lib/api";
+import { useState, useEffect } from "react";
+import { api, apiErrorMessage } from "@/lib/api";
 
 interface Visitor {
   id: string;
@@ -26,6 +26,7 @@ export default function VisitorDetailPage() {
   const visitorId = params.id as string;
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Partial<Visitor>>({});
+  const [actionError, setActionError] = useState("");
 
   const { data: visitor, isLoading } = useQuery({
     queryKey: ["visitor", visitorId],
@@ -33,19 +34,21 @@ export default function VisitorDetailPage() {
       api.get(`/visitors/${visitorId}`).then((r) => r.data),
   });
 
-  // Update form data when visitor loads
-  if (visitor && !formData.firstName) {
-    setFormData(visitor);
-  }
+  // Sync form data when visitor loads (never set state during render)
+  useEffect(() => {
+    if (visitor) setFormData(visitor);
+  }, [visitor]);
 
   const updateMutation = useMutation({
     mutationFn: (data: Partial<Visitor>) =>
       api.patch(`/visitors/${visitorId}`, data),
     onSuccess: () => {
       setIsEditing(false);
+      setActionError("");
       queryClient.invalidateQueries({ queryKey: ["visitor", visitorId] });
       queryClient.invalidateQueries({ queryKey: ["visitors"] });
     },
+    onError: (err) => setActionError(apiErrorMessage(err, "Failed to save changes")),
   });
 
   const deleteMutation = useMutation({
@@ -54,6 +57,7 @@ export default function VisitorDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["visitors"] });
       router.push("/visitors");
     },
+    onError: (err) => setActionError(apiErrorMessage(err, "Failed to delete visitor")),
   });
 
   if (isLoading) {
@@ -74,6 +78,16 @@ export default function VisitorDetailPage() {
 
   return (
     <div className="max-w-4xl">
+      <button onClick={() => router.push("/visitors")} className="text-sm text-blue-600 hover:underline mb-4">
+        ← Back to visitors
+      </button>
+
+      {actionError && (
+        <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg text-sm">
+          {actionError}
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
